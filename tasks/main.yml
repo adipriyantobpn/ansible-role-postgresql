@@ -13,6 +13,8 @@
   static: no
 
 - include: initialize.yml
+- include: git.yml
+- include: ssl.yml
 - include: configure.yml
 
 - name: Ensure PostgreSQL is started and enabled on boot.

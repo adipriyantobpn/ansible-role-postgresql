@@ -6,6 +6,31 @@ postgresql_python_library: python-psycopg2
 postgresql_user: postgres
 postgresql_group: postgres
 
+postgresql_config_source_control_tracked: yes
+postgresql_git_user_name: 'John Doe'
+postgresql_git_user_email: 'john.doe@example.com'
+
+postgresql_gitignores:
+  - 'base/*'
+  - 'global/*'
+  - 'pg_clog/*'
+  - 'pg_commit_ts/*'
+  - 'pg_dynshmem/*'
+  - 'pg_log/*'
+  - 'pg_logical/*'
+  - 'pg_multixact/*'
+  - 'pg_notify/*'
+  - 'pg_replslot/*'
+  - 'pg_serial/*'
+  - 'pg_snapshots/*'
+  - 'pg_stat/*'
+  - 'pg_stat_tmp/*'
+  - 'pg_subtrans/*'
+  - 'pg_tblspc/*'
+  - 'pg_twophase/*'
+  - 'pg_xlog/*'
+  - '*.pid'
+
 postgresql_unix_socket_directories:
   - /var/run/postgresql
 

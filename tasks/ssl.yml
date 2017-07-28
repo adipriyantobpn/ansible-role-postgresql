@@ -1,0 +1,62 @@
+---
+- block:
+    - name: install depended package
+      yum:
+        name: "{{ item }}"
+      with_items:
+        - python2-jmespath
+
+    - name: define PostgreSQL certificate
+      set_fact:
+        postgresql_ssl: "{{ postgresql_use_ssl }}"
+        postgresql_ssl_cert_file_dest: "{{ postgresql_data_dir }}/fullchain.pem"
+        postgresql_ssl_key_file_dest: "{{ postgresql_data_dir }}/privkey.pem"
+      when: postgresql_use_ssl is defined and postgresql_use_ssl
+
+    - name: copy certificate
+      copy:
+        src: "{{ postgresql_ssl_cert_file_src }}"
+        dest: "{{ postgresql_ssl_cert_file_dest }}"
+        follow: yes
+        owner: "{{ postgresql_user }}"
+        group: "{{ postgresql_group }}"
+        mode: 0600
+      when: postgresql_use_ssl is defined and postgresql_use_ssl and postgresql_ssl_cert_file_src is defined and postgresql_ssl_cert_file_dest is defined
+      register: postgresql_ssl_cert_file_copy
+      notify: restart postgresql
+      no_log: yes
+
+    - name: copy certificate private key
+      copy:
+        src: "{{ postgresql_ssl_key_file_src }}"
+        dest: "{{ postgresql_ssl_key_file_dest }}"
+        follow: yes
+        owner: "{{ postgresql_user }}"
+        group: "{{ postgresql_group }}"
+        mode: 0600
+      when: postgresql_use_ssl is defined and postgresql_use_ssl and postgresql_ssl_key_file_src is defined and postgresql_ssl_key_file_dest is defined
+      register: postgresql_ssl_key_file_copy
+      notify: restart postgresql
+      no_log: yes
+
+    - name: prepare ssl configuration
+      set_fact:
+        postgresql_ssl_conf_options:
+        - option: ssl
+          value: 'on'
+        - option: ssl_cert_file
+          value: "{{ postgresql_ssl_cert_file_dest }}"
+        - option: ssl_key_file
+          value: "{{ postgresql_ssl_key_file_dest }}"
+      when: postgresql_ssl_cert_file_copy.changed is defined and postgresql_ssl_key_file_copy.changed
+
+    - name: configure ssl settings
+      lineinfile:
+        dest: "{{ postgresql_config_path }}/postgresql.conf"
+        regexp: "^#?{{ item.option }}[ \t\n\r\f\v]=.+$"
+        line: "{{ item.option }} = '{{ item.value }}'"
+        state: "{{ item.state | default('present') }}"
+      with_items: "{{ postgresql_ssl_conf_options }}"
+      when: postgresql_ssl_conf_options is defined
+      notify: restart postgresql
+  become: yes

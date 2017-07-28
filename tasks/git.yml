@@ -1,0 +1,40 @@
+---
+- block:
+    - name: install depended package
+      yum:
+        name: "{{ item }}"
+      with_items:
+        - git
+
+    - name: initialize git source control
+      shell: "git init"
+      args:
+        chdir: "{{ postgresql_data_dir }}"
+        creates: "{{ postgresql_data_dir }}/.git"
+      when: postgresql_config_source_control_tracked and not pgdata_dir_version.stat.exists
+
+    - name: configure git
+      git_config:
+        name: "{{ item.name }}"
+        scope: local
+        value: "{{ item.value }}"
+        repo: "{{ postgresql_data_dir }}/.git"
+      with_items:
+        - { name: core.autocrlf, value: 'false' }
+        - { name: user.name, value: "{{ postgresql_git_user_name }}" }
+        - { name: user.email, value: "{{ postgresql_git_user_email }}" }
+      when: postgresql_config_source_control_tracked and not pgdata_dir_version.stat.exists
+    
+    - name: configure .gitignore
+      template:
+        src: .gitignore.j2
+        dest: "{{ postgresql_data_dir }}/.gitignore"
+      when: postgresql_config_source_control_tracked and not pgdata_dir_version.stat.exists
+
+    - name: track PostgreSQL configuration into git local repo
+      shell: "git add . && git commit -m {{ postgresql_version|quote }}"
+      args:
+        chdir: "{{ postgresql_data_dir }}"
+      when: postgresql_config_source_control_tracked and not pgdata_dir_version.stat.exists
+
+  become: yes
